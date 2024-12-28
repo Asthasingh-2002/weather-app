@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from "@/components/Navbar";
+import { format, parseISO } from 'date-fns';
 
 interface WeatherDetail {
   dt: number;
@@ -59,7 +60,7 @@ interface WeatherData {
 }
 
 export default function Home() {
-  const [weather, setWeather] = useState<WeatherData[] | null>(null);
+  const [weatherData, setWeatherData] = useState<{ list: WeatherDetail[] } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +77,7 @@ export default function Home() {
             },
           }
         );
-        setWeather(response.data.list);
+        setWeatherData(response.data);
       } catch (err: any) {
         setError(err.message || 'An error occurred');
       } finally {
@@ -86,10 +87,8 @@ export default function Home() {
 
     fetchData();
   }, []);
-  console.log("checking", weather);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  const firstData = weatherData?.list ? weatherData.list[0] : null;
 
   if (loading)
     return (
@@ -97,18 +96,38 @@ export default function Home() {
         <p className="animate-bounce">Loading...</p>
       </div>
     );
+
   if (error)
     return (
       <div className="flex items-center min-h-screen justify-center">
-        {/* @ts-ignore */}
-        <p className="text-red-400">{error.message}</p>
+        <p className="text-red-400">{error}</p>
       </div>
     );
+
   return (
-   <>
-    <div className="flex flex-col gap-4 bg-gray-100 min-h-screen ">
-     <Navbar/>
+    <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
+      <Navbar />
+      <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9 w-full pb-10 pt-4">
+        {/* today's data */}
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <h2 className="flex gap-1 text-2xl items-end">
+              <p>
+                {firstData?.dt_txt
+                  ? format(parseISO(firstData.dt_txt), "EEEE")
+                  : "Loading..."}
+              </p>
+              <p className="text-lg">
+                {firstData?.dt_txt
+                  ? `(${format(parseISO(firstData.dt_txt), "dd.MM.yyyy")})`
+                  : ""}
+              </p>
+            </h2>
+          </div>
+        </section>
+        {/* 7-day forecast data */}
+        <section></section>
+      </main>
     </div>
-   </>
   );
 }
