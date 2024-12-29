@@ -11,6 +11,8 @@ import WeatherDetails from '@/components/WeatherDetails';
 import { metersToKilometers } from '@/utils/metersToKilometers';
 import { convertWindSpeed } from '@/utils/convertWindSpeed';
 import ForecastWeatherDetail from '@/components/ForecastWeatherDetail';
+import { useAtom } from 'jotai';
+import { placeAtom } from './atom';
 
 
 interface WeatherDetail {
@@ -72,6 +74,8 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<{ list: WeatherDetail[] } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+    const [place, setPlace] = useAtom(placeAtom);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,7 +85,7 @@ export default function Home() {
           `https://api.openweathermap.org/data/2.5/forecast?q=pune&cnt=56`,
           {
             params: {
-              q: 'pune',
+              q: {place},
               appid: process.env.NEXT_PUBLIC_WEATHER_KEY,
             },
           }
@@ -129,26 +133,26 @@ export default function Home() {
       </div>
     );
 console.log("checking",weatherData)
+console.log("checking city",weatherData?.city.name)
+
   return (
-    <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
-      <Navbar />
-      <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9 w-full pb-10 pt-4">
-        {/* today's data */}
-        <section className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="flex gap-1 text-2xl items-end">
-              <p>
-                {firstData?.dt_txt
-                  ? format(parseISO(firstData.dt_txt), "EEEE")
-                  : "Loading..."}
-              </p>
-              <p className="text-lg">
-                {firstData?.dt_txt
-                  ? `(${format(parseISO(firstData.dt_txt), "dd.MM.yyyy")})`
-                  : ""}
-              </p>
-            </h2>
-            <Container className=" gap-10 px-6 items-center">
+    <div className="flex flex-col gap-4 bg-gray-100 min-h-screen ">
+      <Navbar location={weatherData?.city.name} />
+      <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9  w-full  pb-10 pt-4 ">
+        {/* today data  */}
+        {loading ? (
+          <WeatherSkeleton />
+        ) : (
+          <>
+            <section className="space-y-4 ">
+              <div className="space-y-2">
+                <h2 className="flex gap-1 text-2xl  items-end ">
+                  <p>{format(parseISO(firstData?.dt_txt ?? ""), "EEEE")}</p>
+                  <p className="text-lg">
+                    ({format(parseISO(firstData?.dt_txt ?? ""), "dd.MM.yyyy")})
+                  </p>
+                </h2>
+                <Container className=" gap-10 px-6 items-center">
                   {/* temprature */}
                   <div className=" flex flex-col px-4 ">
                     <span className="text-5xl">
@@ -198,8 +202,8 @@ console.log("checking",weatherData)
                     ))}
                   </div>
                 </Container>
-          </div>
-          <div className=" flex gap-4">
+              </div>
+              <div className=" flex gap-4">
                 {/* left  */}
                 <Container className="w-fit  justify-center flex-col px-4 items-center ">
                   <p className=" capitalize text-center">
@@ -212,7 +216,6 @@ console.log("checking",weatherData)
                     )}
                   />
                 </Container>
-                 {/* right  */}
                 <Container className="bg-yellow-300/80  px-6 gap-4 justify-between overflow-x-auto">
                   <WeatherDetails
                     visability={metersToKilometers(
@@ -226,13 +229,14 @@ console.log("checking",weatherData)
                     windSpeed={convertWindSpeed(firstData?.wind.speed ?? 1.64)}
                   />
                 </Container>
-               
+                {/* right  */}
               </div>
-        </section>
-        {/* 7-day forecast data */}
-        <section>
-        <p className="text-2xl">Forecast (7 days)</p>
-        {firstDataForEachDate.map((d, i) => (
+            </section>
+
+            {/* 7 day forcast data  */}
+            <section className="flex w-full flex-col gap-4  ">
+              <p className="text-2xl">Forcast (7 days)</p>
+              {firstDataForEachDate.map((d, i) => (
                 <ForecastWeatherDetail
                   key={i}
                   description={d?.weather[0].description ?? ""}
@@ -257,8 +261,50 @@ console.log("checking",weatherData)
                   windSpeed={`${convertWindSpeed(d?.wind.speed ?? 1.64)} `}
                 />
               ))}
-        </section>
+            </section>
+          </>
+        )}
       </main>
     </div>
+  );
+}
+
+function WeatherSkeleton() {
+  return (
+    <section className="space-y-8 ">
+      {/* Today's data skeleton */}
+      <div className="space-y-2 animate-pulse">
+        {/* Date skeleton */}
+        <div className="flex gap-1 text-2xl items-end ">
+          <div className="h-6 w-24 bg-gray-300 rounded"></div>
+          <div className="h-6 w-24 bg-gray-300 rounded"></div>
+        </div>
+
+        {/* Time wise temperature skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((index) => (
+            <div key={index} className="flex flex-col items-center space-y-2">
+              <div className="h-6 w-16 bg-gray-300 rounded"></div>
+              <div className="h-6 w-6 bg-gray-300 rounded-full"></div>
+              <div className="h-6 w-16 bg-gray-300 rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 7 days forecast skeleton */}
+      <div className="flex flex-col gap-4 animate-pulse">
+        <p className="text-2xl h-8 w-36 bg-gray-300 rounded"></p>
+
+        {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+          <div key={index} className="grid grid-cols-2 md:grid-cols-4 gap-4 ">
+            <div className="h-8 w-28 bg-gray-300 rounded"></div>
+            <div className="h-10 w-10 bg-gray-300 rounded-full"></div>
+            <div className="h-8 w-28 bg-gray-300 rounded"></div>
+            <div className="h-8 w-28 bg-gray-300 rounded"></div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
