@@ -76,30 +76,35 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
     const [place, setPlace] = useAtom(placeAtom);
   
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(
-          `https://api.openweathermap.org/data/2.5/forecast?q=pune&cnt=56`,
-          {
-            params: {
-              q: {place},
-              appid: process.env.NEXT_PUBLIC_WEATHER_KEY,
-            },
-          }
-        );
-        setWeatherData(response.data);
-      } catch (err: any) {
-        setError(err.message || 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          
+          // Default to 'pune' if `place` is not set
+          const city = place || 'pune'; 
+    
+          const response = await axios.get(
+            `https://api.openweathermap.org/data/2.5/forecast`,
+            {
+              params: {
+                q: city, // Correctly pass the city name as a string
+                appid: process.env.NEXT_PUBLIC_WEATHER_KEY,
+              },
+            }
+          );
+          
+          setWeatherData(response.data);
+        } catch (err: any) {
+          setError(err.message || 'An error occurred');
+        } finally {
+          setLoading(false);
+        }
+      };
+    
+      fetchData();
+    }, [place]); 
+    
 
   const firstData = weatherData?.list ? weatherData.list[0] : null;
 
