@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from "@/components/Navbar";
-import { format, parseISO } from 'date-fns';
+import { format, fromUnixTime, parseISO } from 'date-fns';
 import Container from '@/components/Container';
 import { convertKelvinToCelsius } from '@/utils/convertKelvinToCelsius';
 import WeatherIcon from '@/components/WeatherIcon';
@@ -10,8 +10,8 @@ import { getDayOrNightIcon } from '@/utils/getDayOrNightIcon';
 import WeatherDetails from '@/components/WeatherDetails';
 import { metersToKilometers } from '@/utils/metersToKilometers';
 import { convertWindSpeed } from '@/utils/convertWindSpeed';
-// import WeatherDetails from "@/components/WeatherDetails";
-// import WeatherIcon from "@/components/WeatherIcon";
+import ForecastWeatherDetail from '@/components/ForecastWeatherDetail';
+
 
 interface WeatherDetail {
   dt: number;
@@ -99,6 +99,22 @@ export default function Home() {
 
   const firstData = weatherData?.list ? weatherData.list[0] : null;
 
+  const uniqueDates = [
+    ...new Set(
+      weatherData?.list.map(
+        (entry) => new Date(entry.dt * 1000).toISOString().split("T")[0]
+      )
+    )
+  ];
+
+  // Filtering data to get the first entry after 6 AM for each unique date
+  const firstDataForEachDate = uniqueDates.map((date) => {
+    return weatherData?.list.find((entry) => {
+      const entryDate = new Date(entry.dt * 1000).toISOString().split("T")[0];
+      const entryTime = new Date(entry.dt * 1000).getHours();
+      return entryDate === date && entryTime >= 6;
+    });
+  });
   if (loading)
     return (
       <div className="flex items-center min-h-screen justify-center">
@@ -214,7 +230,34 @@ console.log("checking",weatherData)
               </div>
         </section>
         {/* 7-day forecast data */}
-        <section></section>
+        <section>
+        <p className="text-2xl">Forecast (7 days)</p>
+        {firstDataForEachDate.map((d, i) => (
+                <ForecastWeatherDetail
+                  key={i}
+                  description={d?.weather[0].description ?? ""}
+                  weatehrIcon={d?.weather[0].icon ?? "01d"}
+                  date={d ? format(parseISO(d.dt_txt), "dd.MM") : ""}
+                  day={d ? format(parseISO(d.dt_txt), "dd.MM") : "EEEE"}
+                  feels_like={d?.main.feels_like ?? 0}
+                  temp={d?.main.temp ?? 0}
+                  temp_max={d?.main.temp_max ?? 0}
+                  temp_min={d?.main.temp_min ?? 0}
+                  airPressure={`${d?.main.pressure} hPa `}
+                  humidity={`${d?.main.humidity}% `}
+                  sunrise={format(
+                    fromUnixTime(weatherData?.city.sunrise ?? 1702517657),
+                    "H:mm"
+                  )}
+                  sunset={format(
+                    fromUnixTime(weatherData?.city.sunset ?? 1702517657),
+                    "H:mm"
+                  )}
+                  visability={`${metersToKilometers(d?.visibility ?? 10000)} `}
+                  windSpeed={`${convertWindSpeed(d?.wind.speed ?? 1.64)} `}
+                />
+              ))}
+        </section>
       </main>
     </div>
   );
